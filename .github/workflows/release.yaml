@@ -11,6 +11,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   C_IMAGE_NAME: 'ghcr.io/dmetzler1988-org/alpine-minimal'
+  C_NAME: 'alpine-minimal'
 
 jobs:
   build-and-push-image:
@@ -51,7 +52,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
           labels: |
-            name='alpine-minimal'
+            name=${{ env.C_NAME }}
             summary=${{ github.event.repository.description }}
             url=${{ github.event.repository.html_url }}
             build-date=${{ steps.meta_build_date.outputs.created }}
