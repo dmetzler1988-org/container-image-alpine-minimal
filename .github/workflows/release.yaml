@@ -1,0 +1,16 @@
+name: Publish Container Images
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: release
+        run: echo "TODO - CREATE RELEASE ACTION"
