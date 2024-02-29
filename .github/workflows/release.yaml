@@ -23,7 +23,7 @@ jobs:
       deployments: none
       id-token: none
       issues: none
-      metadata: read
+      #metadata: read
       packages: write
       pages: none
       pull-requests: none
