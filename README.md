@@ -14,7 +14,7 @@ The dmetzler1988 Universal alpine base image is an image based on
 This image can be used as a downstream image in your repository. Replace the `:latest` tag with a specific version.
 
 ```Dockerfile
-FROM ghcr.io/dmetzler1988/alpine-minimal:latest
+FROM ghcr.io/dmetzler1988-org/alpine-minimal:latest
 
 RUN apk --no-cache add python3
 
@@ -26,7 +26,7 @@ USER 1001
 To build this image on local system, use the following command in your CLI
 
 ```shell
-docker build -t dmetzler1988/alpine-minimal .
+docker build -t dmetzler1988-org/alpine-minimal .
 ```
 
 ## Build Process
