@@ -15,14 +15,15 @@ jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
 
+    # See https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs#defining-access-for-the-github_token-scopes
     permissions:
       actions: none
       checks: none
       contents: none
       deployments: none
+      discussions: none
       id-token: none
       issues: none
-      #metadata: read
       packages: write
       pages: none
       pull-requests: none
