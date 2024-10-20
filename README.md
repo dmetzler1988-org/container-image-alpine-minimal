@@ -1,12 +1,12 @@
 # dmetzler1988 Universal alpine base image
 
 The dmetzler1988 Universal alpine base image is an image based on 
-[Alpine Linux](https://hub.docker.com/_/alpine) version 3.19.1 from 
+[Alpine Linux](https://hub.docker.com/_/alpine) version 3.20.3 from 
 [DockerHub](https://hub.docker.com/).
 
 ## Features
 
-- based on [minimal DockerHub Alpine Linux](https://hub.docker.com/_/alpine) version 3.19.1
+- based on [minimal DockerHub Alpine Linux](https://hub.docker.com/_/alpine) version 3.20.3
 - uses APK as package manager
 
 ## Usage

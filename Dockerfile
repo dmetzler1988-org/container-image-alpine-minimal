@@ -1,4 +1,4 @@
-FROM alpine:3.19.1
+FROM alpine:3.20.3
 
 LABEL maintainer="dmetzler1988"
 LABEL version="1.0"
