@@ -15,6 +15,7 @@ fixes arrive without anyone touching the repository.
 | `3.24.4` | This Alpine version, moves to every new build of it |
 | `3.24` | Latest build of Alpine 3.24 |
 | `3` | Latest build of Alpine 3 |
+| `latest` | Newest release, same as `3` today |
 | `3.24.4-1.0.1` | One specific release; never moves. Use it to roll back |
 
 The moving tags work like `latest`: a new build re-points them. Pin them by digest and let your update bot
@@ -24,8 +25,8 @@ The moving tags work like `latest`: a new build re-points them. Pin them by dige
 FROM ghcr.io/dmetzler1988-org/alpine-minimal:3.24@sha256:<digest>
 ```
 
-The old tags `0.0.1` to `0.0.3` were a proof of concept on Alpine 3.20, which is out of support. They are not
-updated anymore.
+The old tags `0.0.1`, `0.0.2`, `0.0.3` and `0.0` were a proof of concept on Alpine 3.20, which is out of
+support. They are not updated anymore. Until release 1.0.1, `latest` still pointed to `0.0.3`.
 
 ## Usage
 
