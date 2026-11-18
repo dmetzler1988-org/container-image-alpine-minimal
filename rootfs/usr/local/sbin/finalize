@@ -1,0 +1,52 @@
+#!/bin/sh
+# finalize: run as the last root step of an image built on alpine-minimal.
+#
+#   USER root
+#   RUN apk add --no-cache <runtime libraries> && /usr/local/sbin/finalize
+#   USER 10001
+#
+# Removes the package manager, its keys, repositories and caches, so nothing can be installed at runtime,
+# and strips setuid/setgid bits. Keeps apk's package database: Trivy and Grype read it to find
+# vulnerable packages, and deleting it would hide every package from them.
+#
+# Safe to run more than once. Exit codes: 0 done, 1 refused or self-check failed.
+set -eu
+
+readonly APK_DB=/lib/apk/db/installed
+
+fail() {
+  echo "finalize: $*" >&2
+  exit 1
+}
+
+find_setid_files() {
+  find / -xdev -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null
+}
+
+if [ "$(id -u)" -ne 0 ]; then
+  fail "must run as root (put USER root before it)"
+fi
+if [ ! -s "$APK_DB" ]; then
+  fail "$APK_DB is missing; refusing to continue because scanners would see no packages"
+fi
+
+apk_bin=$(command -v apk || true)
+if [ -n "$apk_bin" ]; then
+  rm -f "$apk_bin"
+fi
+rm -rf /etc/apk /var/cache/apk /usr/share/apk
+
+find_setid_files | while IFS= read -r file; do
+  chmod a-s "$file"
+done
+
+if command -v apk > /dev/null 2>&1; then
+  fail "self-check: apk is still present"
+fi
+if [ -n "$(find_setid_files)" ]; then
+  fail "self-check: setuid/setgid files remain"
+fi
+if [ ! -s "$APK_DB" ]; then
+  fail "self-check: $APK_DB is gone"
+fi
+echo "finalize: done"

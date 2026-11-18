@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Daily: Alpine package fixes reach the apk repository without a new alpine image digest.
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+    inputs:
+      level:
+        description: Raise the release level to at least this one.
+        type: choice
+        options: [none, patch, minor, major]
+        default: none
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/dmetzler1988-org/alpine-minimal
+
+jobs:
+  resolve:
+    name: Resolve base image
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.base.outputs.tag }}
+      digest: ${{ steps.base.outputs.digest }}
+      version: ${{ steps.base.outputs.version }}
+      image: ${{ env.IMAGE }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read tag from Dockerfile and resolve digest and version
+        id: base
+        run: |
+          tag=$(sed -n 's/^FROM alpine:\([0-9][0-9.]*\)[[:space:]]*$/\1/p' Dockerfile | head -n 1)
+          if [ -z "$tag" ]; then
+            echo "::error::Dockerfile has no 'FROM alpine:<version>' line"
+            exit 1
+          fi
+          digest=$(docker buildx imagetools inspect "alpine:$tag" --format '{{json .Manifest}}' | jq -r '.digest')
+          version=$(docker run --rm "alpine:$tag@$digest" cat /etc/alpine-release)
+          {
+            echo "tag=$tag"
+            echo "digest=$digest"
+            echo "version=$version"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build
+    needs: resolve
+    permissions:
+      contents: read
+      security-events: write
+    uses: dmetzler1988-org/container-workflows/.github/workflows/build-image.yaml@d5a63c38b59d6383f6b601259a19c34ef93e3855 # v1.0.0
+    with:
+      build-contexts: alpine:${{ needs.resolve.outputs.tag }}=docker-image://alpine:${{ needs.resolve.outputs.tag }}@${{ needs.resolve.outputs.digest }}
+      build-args: |
+        ALPINE_IMAGE=docker.io/library/alpine:${{ needs.resolve.outputs.version }}
+        ALPINE_DIGEST=${{ needs.resolve.outputs.digest }}
+
+  release:
+    name: Release
+    if: github.event_name != 'pull_request'
+    needs: [resolve, build]
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    uses: dmetzler1988-org/container-workflows/.github/workflows/release.yaml@d5a63c38b59d6383f6b601259a19c34ef93e3855 # v1.0.0
+    with:
+      image: ${{ needs.resolve.outputs.image }}
+      build-contexts: alpine:${{ needs.resolve.outputs.tag }}=docker-image://alpine:${{ needs.resolve.outputs.tag }}@${{ needs.resolve.outputs.digest }}
+      build-args: |
+        ALPINE_IMAGE=docker.io/library/alpine:${{ needs.resolve.outputs.version }}
+        ALPINE_DIGEST=${{ needs.resolve.outputs.digest }}
+      alpine-version: ${{ needs.build.outputs.alpine-version }}
+      alpine-digest: ${{ needs.resolve.outputs.digest }}
+      packages-json: ${{ needs.build.outputs.packages-json }}
+      level: ${{ inputs.level || 'none' }}
+
+  automerge:
+    name: Dependabot auto-merge
+    if: github.event_name == 'pull_request'
+    needs: build
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: dmetzler1988-org/container-workflows/.github/workflows/dependabot-automerge.yaml@d5a63c38b59d6383f6b601259a19c34ef93e3855 # v1.0.0

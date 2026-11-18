@@ -1,0 +1,41 @@
+name: Rescan
+
+on:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  target:
+    name: Find published tag
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      image-ref: ${{ steps.lock.outputs.image-ref }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read versions.lock
+        id: lock
+        run: |
+          if [ ! -f versions.lock ]; then
+            echo "::notice::No release yet, nothing to rescan."
+            exit 0
+          fi
+          alpine_version=$(jq -r '.alpineVersion' versions.lock)
+          echo "image-ref=ghcr.io/dmetzler1988-org/alpine-minimal:${alpine_version%.*}" >> "$GITHUB_OUTPUT"
+
+  rescan:
+    name: Rescan
+    needs: target
+    if: needs.target.outputs.image-ref != ''
+    permissions:
+      contents: read
+      security-events: write
+    uses: dmetzler1988-org/container-workflows/.github/workflows/rescan.yaml@d5a63c38b59d6383f6b601259a19c34ef93e3855 # v1.0.0
+    with:
+      image-ref: ${{ needs.target.outputs.image-ref }}
