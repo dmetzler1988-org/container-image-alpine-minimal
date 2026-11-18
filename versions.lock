@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "alpineVersion": "3.24.4",
+  "alpineDigest": "sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf",
+  "packages": {
+    "linux/amd64": "1cb50a77bdd7fef60ba928fe8c497f869dbd02c18e1d42f7c315bc2b2c7b854d",
+    "linux/arm64": "1cb50a77bdd7fef60ba928fe8c497f869dbd02c18e1d42f7c315bc2b2c7b854d"
+  }
+}
