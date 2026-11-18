@@ -32,7 +32,10 @@ jobs:
       contents: read
     outputs:
       image: ${{ env.IMAGE }}
-      build-contexts: ${{ steps.base.outputs.build-contexts }}
+      # Tag and digest separately: GitHub drops a job output shaped like "name:tag=x://name:tag@sha256:…"
+      # because it looks like a URL with credentials. The build context is assembled in each `with:` instead.
+      tag: ${{ steps.base.outputs.tag }}
+      digest: ${{ steps.base.outputs.digest }}
       build-args: ${{ steps.base.outputs.build-args }}
       images: ${{ steps.base.outputs.images }}
       base: ${{ steps.base.outputs.base }}
@@ -59,7 +62,8 @@ jobs:
             '{image: $image, digest: $digest, alpineVersion: $alpine}')
           # printf, not echo: the JSON contains "\n" escapes that some shells' echo would expand.
           {
-            printf 'build-contexts=alpine:%s=docker-image://alpine:%s@%s\n' "$tag" "$tag" "$digest"
+            printf 'tag=%s\n' "$tag"
+            printf 'digest=%s\n' "$digest"
             printf 'build-args<<EOF\n%s\nEOF\n' "$build_args"
             printf 'images=%s\n' "$images"
             printf 'base=%s\n' "$base"
@@ -74,7 +78,7 @@ jobs:
     uses: dmetzler1988-org/container-workflows/.github/workflows/build-image.yaml@cbaee78284f04cac4e8e3a2fff8ab235d38ca970 # v2.0.0
     with:
       image-key: alpine
-      build-contexts: ${{ needs.resolve.outputs.build-contexts }}
+      build-contexts: alpine:${{ needs.resolve.outputs.tag }}=docker-image://alpine:${{ needs.resolve.outputs.tag }}@${{ needs.resolve.outputs.digest }}
       build-args: ${{ needs.resolve.outputs.build-args }}
 
   release:
@@ -94,7 +98,7 @@ jobs:
       image: ${{ needs.resolve.outputs.image }}
       images: ${{ needs.resolve.outputs.images }}
       base: ${{ needs.resolve.outputs.base }}
-      build-contexts: ${{ needs.resolve.outputs.build-contexts }}
+      build-contexts: alpine:${{ needs.resolve.outputs.tag }}=docker-image://alpine:${{ needs.resolve.outputs.tag }}@${{ needs.resolve.outputs.digest }}
       level: ${{ inputs.level || 'none' }}
       # Dry run everywhere until v2 is proven: push and schedule always, manual runs unless unticked.
       dry-run: ${{ github.event_name != 'workflow_dispatch' || inputs.dry-run }}
