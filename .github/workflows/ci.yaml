@@ -14,12 +14,12 @@ on:
         type: choice
         options: [none, patch, minor, major]
         default: none
+      dry-run:
+        description: Only report version, tags and versions.lock; publish nothing.
+        type: boolean
+        default: true
 
 permissions: {}
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
 
 env:
   IMAGE: ghcr.io/dmetzler1988-org/alpine-minimal
@@ -31,10 +31,11 @@ jobs:
     permissions:
       contents: read
     outputs:
-      tag: ${{ steps.base.outputs.tag }}
-      digest: ${{ steps.base.outputs.digest }}
-      version: ${{ steps.base.outputs.version }}
       image: ${{ env.IMAGE }}
+      build-contexts: ${{ steps.base.outputs.build-contexts }}
+      build-args: ${{ steps.base.outputs.build-args }}
+      images: ${{ steps.base.outputs.images }}
+      base: ${{ steps.base.outputs.base }}
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -49,10 +50,19 @@ jobs:
           fi
           digest=$(docker buildx imagetools inspect "alpine:$tag" --format '{{json .Manifest}}' | jq -r '.digest')
           version=$(docker run --rm "alpine:$tag@$digest" cat /etc/alpine-release)
+          build_args=$(printf 'ALPINE_IMAGE=docker.io/library/alpine:%s\nALPINE_DIGEST=%s' "$version" "$digest")
+          images=$(jq -n -c --arg args "$build_args" '[{
+            key: "alpine", target: "", "build-args": $args, "tag-suffix": "",
+            "major-tag": true, latest: true, "version-command": "cat /etc/alpine-release"
+          }]')
+          base=$(jq -n -c --arg image "docker.io/library/alpine:$tag" --arg digest "$digest" --arg alpine "$version" \
+            '{image: $image, digest: $digest, alpineVersion: $alpine}')
+          # printf, not echo: the JSON contains "\n" escapes that some shells' echo would expand.
           {
-            echo "tag=$tag"
-            echo "digest=$digest"
-            echo "version=$version"
+            printf 'build-contexts=alpine:%s=docker-image://alpine:%s@%s\n' "$tag" "$tag" "$digest"
+            printf 'build-args<<EOF\n%s\nEOF\n' "$build_args"
+            printf 'images=%s\n' "$images"
+            printf 'base=%s\n' "$base"
           } >> "$GITHUB_OUTPUT"
 
   build:
@@ -61,32 +71,33 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    uses: dmetzler1988-org/container-workflows/.github/workflows/build-image.yaml@06645d4a797de7c7f5ec6883be176b7420b9d59e # v1.1.0
+    uses: dmetzler1988-org/container-workflows/.github/workflows/build-image.yaml@cbaee78284f04cac4e8e3a2fff8ab235d38ca970 # v2.0.0
     with:
-      build-contexts: alpine:${{ needs.resolve.outputs.tag }}=docker-image://alpine:${{ needs.resolve.outputs.tag }}@${{ needs.resolve.outputs.digest }}
-      build-args: |
-        ALPINE_IMAGE=docker.io/library/alpine:${{ needs.resolve.outputs.version }}
-        ALPINE_DIGEST=${{ needs.resolve.outputs.digest }}
+      image-key: alpine
+      build-contexts: ${{ needs.resolve.outputs.build-contexts }}
+      build-args: ${{ needs.resolve.outputs.build-args }}
 
   release:
     name: Release
     if: github.event_name != 'pull_request'
     needs: [resolve, build]
+    # Here, not on the workflow: runs that build nothing must never cancel a waiting release.
+    concurrency:
+      group: release-${{ github.repository }}
+      cancel-in-progress: false
     permissions:
       contents: write
       packages: write
       id-token: write
-    uses: dmetzler1988-org/container-workflows/.github/workflows/release.yaml@06645d4a797de7c7f5ec6883be176b7420b9d59e # v1.1.0
+    uses: dmetzler1988-org/container-workflows/.github/workflows/release.yaml@cbaee78284f04cac4e8e3a2fff8ab235d38ca970 # v2.0.0
     with:
       image: ${{ needs.resolve.outputs.image }}
-      build-contexts: alpine:${{ needs.resolve.outputs.tag }}=docker-image://alpine:${{ needs.resolve.outputs.tag }}@${{ needs.resolve.outputs.digest }}
-      build-args: |
-        ALPINE_IMAGE=docker.io/library/alpine:${{ needs.resolve.outputs.version }}
-        ALPINE_DIGEST=${{ needs.resolve.outputs.digest }}
-      alpine-version: ${{ needs.build.outputs.alpine-version }}
-      alpine-digest: ${{ needs.resolve.outputs.digest }}
-      packages-json: ${{ needs.build.outputs.packages-json }}
+      images: ${{ needs.resolve.outputs.images }}
+      base: ${{ needs.resolve.outputs.base }}
+      build-contexts: ${{ needs.resolve.outputs.build-contexts }}
       level: ${{ inputs.level || 'none' }}
+      # Dry run everywhere until v2 is proven: push and schedule always, manual runs unless unticked.
+      dry-run: ${{ github.event_name != 'workflow_dispatch' || inputs.dry-run }}
 
   automerge:
     name: Dependabot auto-merge
@@ -95,4 +106,4 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: dmetzler1988-org/container-workflows/.github/workflows/dependabot-automerge.yaml@06645d4a797de7c7f5ec6883be176b7420b9d59e # v1.1.0
+    uses: dmetzler1988-org/container-workflows/.github/workflows/dependabot-automerge.yaml@cbaee78284f04cac4e8e3a2fff8ab235d38ca970 # v2.0.0

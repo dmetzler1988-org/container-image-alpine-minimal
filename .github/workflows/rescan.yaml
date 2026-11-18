@@ -26,7 +26,7 @@ jobs:
             echo "::notice::No release yet, nothing to rescan."
             exit 0
           fi
-          alpine_version=$(jq -r '.alpineVersion' versions.lock)
+          alpine_version=$(jq -r '.base.alpineVersion' versions.lock)
           echo "image-ref=ghcr.io/dmetzler1988-org/alpine-minimal:${alpine_version%.*}" >> "$GITHUB_OUTPUT"
 
   rescan:
@@ -36,6 +36,6 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    uses: dmetzler1988-org/container-workflows/.github/workflows/rescan.yaml@06645d4a797de7c7f5ec6883be176b7420b9d59e # v1.1.0
+    uses: dmetzler1988-org/container-workflows/.github/workflows/rescan.yaml@cbaee78284f04cac4e8e3a2fff8ab235d38ca970 # v2.0.0
     with:
       image-ref: ${{ needs.target.outputs.image-ref }}
