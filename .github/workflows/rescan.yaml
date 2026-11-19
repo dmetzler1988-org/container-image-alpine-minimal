@@ -36,6 +36,6 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    uses: dmetzler1988-org/container-workflows/.github/workflows/rescan.yaml@cbaee78284f04cac4e8e3a2fff8ab235d38ca970 # v2.0.0
+    uses: dmetzler1988-org/container-workflows/.github/workflows/rescan.yaml@7938b91619816ac33b2dd06ccdc8f142a1da749f # v2.0.1
     with:
       image-ref: ${{ needs.target.outputs.image-ref }}

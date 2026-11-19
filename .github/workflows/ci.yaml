@@ -75,7 +75,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    uses: dmetzler1988-org/container-workflows/.github/workflows/build-image.yaml@cbaee78284f04cac4e8e3a2fff8ab235d38ca970 # v2.0.0
+    uses: dmetzler1988-org/container-workflows/.github/workflows/build-image.yaml@7938b91619816ac33b2dd06ccdc8f142a1da749f # v2.0.1
     with:
       image-key: alpine
       build-contexts: alpine:${{ needs.resolve.outputs.tag }}=docker-image://alpine:${{ needs.resolve.outputs.tag }}@${{ needs.resolve.outputs.digest }}
@@ -93,7 +93,7 @@ jobs:
       contents: write
       packages: write
       id-token: write
-    uses: dmetzler1988-org/container-workflows/.github/workflows/release.yaml@cbaee78284f04cac4e8e3a2fff8ab235d38ca970 # v2.0.0
+    uses: dmetzler1988-org/container-workflows/.github/workflows/release.yaml@7938b91619816ac33b2dd06ccdc8f142a1da749f # v2.0.1
     with:
       image: ${{ needs.resolve.outputs.image }}
       images: ${{ needs.resolve.outputs.images }}
@@ -109,4 +109,4 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: dmetzler1988-org/container-workflows/.github/workflows/dependabot-automerge.yaml@cbaee78284f04cac4e8e3a2fff8ab235d38ca970 # v2.0.0
+    uses: dmetzler1988-org/container-workflows/.github/workflows/dependabot-automerge.yaml@7938b91619816ac33b2dd06ccdc8f142a1da749f # v2.0.1
