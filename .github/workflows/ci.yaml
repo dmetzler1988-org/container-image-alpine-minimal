@@ -17,7 +17,7 @@ on:
       dry-run:
         description: Only report version, tags and versions.lock; publish nothing.
         type: boolean
-        default: true
+        default: false
 
 permissions: {}
 
@@ -100,8 +100,7 @@ jobs:
       base: ${{ needs.resolve.outputs.base }}
       build-contexts: alpine:${{ needs.resolve.outputs.tag }}=docker-image://alpine:${{ needs.resolve.outputs.tag }}@${{ needs.resolve.outputs.digest }}
       level: ${{ inputs.level || 'none' }}
-      # Dry run everywhere until v2 is proven: push and schedule always, manual runs unless unticked.
-      dry-run: ${{ github.event_name != 'workflow_dispatch' || inputs.dry-run }}
+      dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}
 
   automerge:
     name: Dependabot auto-merge
